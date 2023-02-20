@@ -115,7 +115,8 @@ export class SerialService {
             this.comPorts = [];
             for(let i = 0; i < ports.length; i++){
                 if(ports[i].vendorId === 0x0403){      // FTDI
-                    if(ports[i].productId === 0x6015){ // FX230
+                    //if(ports[i].productId === 0x6015){ // FX230
+                    if(ports[i].productId === 0x6001){   // FT232RL
                         this.comPorts.push(ports[i]);
                     }
                 }

@@ -4,20 +4,18 @@
   flex-direction: column;
   align-items: stretch;
   //border: solid 1px red;
-  margin: auto 5px;
+  padding: 5px;
   overflow: auto;
   gap: 5px;
 }
+
 #serialPort{
   gap: 10px;
   font-size: 0.9em;
   border : solid 1px black;
-  margin-top: 5px;
   border-radius: 5px;
 }
-#secData {
-    margin-top: 5px;
-}
+
 #secGroup{
     display: flex;
     flex-direction: column;
@@ -25,11 +23,12 @@
     padding: 5px;
     gap: 5px;
 }
+
 #logs{
   min-height: 250px;
   flex: 1 1 auto;
   overflow: auto;
-  margin-bottom: 5px;
+  //margin-bottom: 5px;
   border-radius: 5px;
 }
 #cbScroll{

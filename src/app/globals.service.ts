@@ -127,6 +127,7 @@ export class GlobalsService {
     ZDO_MGMT_LEAVE_RSP = 0xB4;
 
     ZB_BRIDGE = 1;
+    ESP_LINK = 2;
     HTU21D_005 = 500;
     SH_006 = 600;
     BME280_007 = 700;

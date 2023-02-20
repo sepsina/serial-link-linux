@@ -11,6 +11,7 @@ import { SSR_009_Component } from './ssr-009/ssr-009.component';
 import { Actuator_010_Component } from './actuator-010/actuator-010.component';
 import { DBL_SW_008_Component } from './dbl-sw-008/dbl-sw-008.component';
 import { ZB_Bridge_Component } from './zb-bridge/zb-bridge.component';
+import { Esp_Link_Component } from './esp-link/esp-link.component';
 import { Subscription } from 'rxjs';
 
 import * as gIF from './gIF';
@@ -38,6 +39,8 @@ export class AppComponent implements OnInit, OnDestroy {
     partNum = 0;
     prevPartNum = -1;
     startFlag = true;
+
+    espLinkFlag = false;
 
     constructor(public serial: SerialService,
                 public globals: GlobalsService,
@@ -129,10 +132,18 @@ export class AppComponent implements OnInit, OnDestroy {
             this.partNum = msg;
             if(this.partNum != this.prevPartNum) {
                 this.prevPartNum = this.partNum;
+                if(this.partNum != this.globals.ESP_LINK){
+                    this.espLinkFlag = false;
+                }
                 this.viewRef.clear();
                 switch(this.partNum) {
                     case this.globals.ZB_BRIDGE: {
                         this.viewRef.createComponent(ZB_Bridge_Component);
+                        break;
+                    }
+                    case this.globals.ESP_LINK: {
+                        this.espLinkFlag = true;
+                        this.viewRef.createComponent(Esp_Link_Component);
                         break;
                     }
                     case this.globals.HTU21D_005: {
@@ -162,9 +173,11 @@ export class AppComponent implements OnInit, OnDestroy {
             console.log(`part number: ${this.partNum}`);
             if(this.startFlag == true) {
                 this.startFlag = false;
-                setTimeout(()=>{
-                    this.readKeys();
-                }, 100);
+                if(!this.espLinkFlag){
+                    setTimeout(()=>{
+                        this.readKeys();
+                    }, 100);
+                }
                 setTimeout(()=>{
                     this.events.publish('rdNodeData_0');
                 }, 200);

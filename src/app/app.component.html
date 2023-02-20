@@ -14,11 +14,11 @@
     <div *ngIf="serial.validPortFlag" id="secData" class="app-card">
         <div class="right-center app-card-toolbar">
             <div class="left-center app-card-title">security</div>
-            <button mat-button (click)="readKeys()">
+            <button mat-button (click)="readKeys()" [disabled]="espLinkFlag">
                 <mat-icon>file_download</mat-icon>
                 Read
             </button>
-            <button mat-button (click)="wrKeys()" [disabled]="!isSecValid()">
+            <button mat-button (click)="wrKeys()" [disabled]="!isSecValid() || espLinkFlag">
                 <mat-icon>file_upload</mat-icon>
                 Save
             </button>
@@ -70,7 +70,7 @@
             <mat-icon>autorenew</mat-icon>
             Soft Reset
         </button>
-        <button mat-button (click)="serial.factoryRstReq()">
+        <button mat-button (click)="serial.factoryRstReq()" [disabled]="espLinkFlag">
             <mat-icon>touch_app</mat-icon>
             Factory Reset
         </button>

@@ -1,0 +1,39 @@
+<div class="right-center app-card-toolbar">
+    <div class="left-center app-card-title">
+        esp-link
+    </div>
+    <button mat-button (click)="rdNodeData_0()">
+        <mat-icon>file_download</mat-icon>
+        Read
+    </button>
+    <button mat-button (click)="wrNodeData_0()" [disabled]="isInvalid()">
+        <mat-icon>file_upload</mat-icon>
+        Save
+    </button>
+</div>
+<div id="linkGroup">
+    <mat-form-field id="ssid">
+        <input matInput
+            type="text"
+            [maxlength]="16"
+            placeholder="ssid"
+            [formControl]='ssidFormCtrl'
+            style="padding-left: 5px"
+            autocomplete="off">
+        <mat-hint align="end">32 characters</mat-hint>
+        <mat-error *ngIf="ssidFormCtrl.invalid">{{ssidErr()}}</mat-error>
+    </mat-form-field>
+    <mat-form-field id="psw">
+        <input matInput
+            type="text"
+            [maxlength]="16"
+            placeholder="psw"
+            [formControl]='pswFormCtrl'
+            style="padding-left: 5px"
+            autocomplete="off">
+        <mat-hint align="end">16 characters</mat-hint>
+        <mat-error *ngIf="pswFormCtrl.invalid">{{pswErr()}}</mat-error>
+    </mat-form-field>
+</div>
+
+
