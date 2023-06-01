@@ -4,6 +4,7 @@ import { EventsService } from '../events.service';
 import { GlobalsService } from '../globals.service';
 import { Validators, FormGroup, FormControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import * as gIF from '../gIF';
 
 @Component({
     selector: 'app-actuator-010',
@@ -22,6 +23,8 @@ export class Actuator_010_Component implements OnInit, OnDestroy {
     levelFormCtrl: FormControl;
     subscription = new Subscription();
 
+    rwBuf = new gIF.rwBuf_t();
+
     constructor(private serial: SerialService,
                 private events: EventsService,
                 private globals: GlobalsService,
@@ -36,18 +39,15 @@ export class Actuator_010_Component implements OnInit, OnDestroy {
 
     ngOnInit(): void {
 
-        this.events.subscribe('rdNodeDataRsp', (msg: Uint8Array)=>{
-            let buf = msg.buffer;
-            let data = new DataView(buf);
-            let idx = 0;
-
-            let partNum = data.getUint32(idx, this.globals.LE);
-            idx += 4;
+        this.events.subscribe('rdNodeDataRsp', (msg)=>{
+            this.rwBuf.rdBuf = msg;
+            this.rwBuf.rdIdx = 0;
+            const partNum = this.rwBuf.read_uint32_LE();
             if(partNum == this.globals.ACTUATOR_010) {
                 this.ngZone.run(()=>{
-                    this.repIntFormCtrl.setValue(data.getUint8(idx++));
-                    this.state = !!data.getUint8(idx++);
-                    this.levelFormCtrl.setValue(data.getUint8(idx++));
+                    this.repIntFormCtrl.setValue(this.rwBuf.read_uint8());
+                    this.state = !!this.rwBuf.read_uint8();
+                    this.levelFormCtrl.setValue(this.rwBuf.read_uint8());
                 });
             }
         });
@@ -63,8 +63,8 @@ export class Actuator_010_Component implements OnInit, OnDestroy {
                 Validators.max(this.maxInt),
             ]
         );
+        this.repIntFormCtrl.markAsTouched();
         const repIntSubscription = this.repIntFormCtrl.valueChanges.subscribe((newInt)=>{
-            this.repIntFormCtrl.markAsTouched();
             this.appRef.tick();
         });
         this.subscription.add(repIntSubscription);
@@ -77,8 +77,8 @@ export class Actuator_010_Component implements OnInit, OnDestroy {
                 Validators.max(this.maxLevel),
             ]
         );
+        this.levelFormCtrl.markAsTouched();
         const levelSubscription = this.levelFormCtrl.valueChanges.subscribe((level)=>{
-            this.levelFormCtrl.markAsTouched();
             this.appRef.tick();
         });
         this.subscription.add(levelSubscription);

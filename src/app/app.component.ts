@@ -76,11 +76,13 @@ export class AppComponent implements OnInit, OnDestroy {
                 Validators.maxLength(16),
             ]
         )
+        this.nwkKeyFormCtrl.markAsTouched();
+        /*
         const nwkKeySubscription = this.nwkKeyFormCtrl.valueChanges.subscribe((key)=>{
-            this.nwkKeyFormCtrl.markAsTouched();
+            // ---
         });
         this.subscription.add(nwkKeySubscription);
-
+        */
         this.panIdFormCtrl = new FormControl(
             this.minId,
             [
@@ -89,14 +91,18 @@ export class AppComponent implements OnInit, OnDestroy {
                 Validators.max(this.maxId),
             ]
         );
+        this.panIdFormCtrl.markAsTouched();
+        /*
         const panIdSubscription = this.panIdFormCtrl.valueChanges.subscribe((newId)=>{
-            this.panIdFormCtrl.markAsTouched();
+            // ---
         });
         this.subscription.add(panIdSubscription);
+        */
 
         this.events.subscribe('closePort', (msg)=>{
             if(msg == 'close'){
                 this.prevPartNum = -1;
+                this.startFlag = true;
             }
         });
 
@@ -172,15 +178,16 @@ export class AppComponent implements OnInit, OnDestroy {
             }
             console.log(`part number: ${this.partNum}`);
             if(this.startFlag == true) {
+                console.log('---***---');
                 this.startFlag = false;
                 if(!this.espLinkFlag){
                     setTimeout(()=>{
                         this.readKeys();
-                    }, 100);
+                    }, 300);
                 }
                 setTimeout(()=>{
-                    this.events.publish('rdNodeData_0');
-                }, 200);
+                    this.serial.rdNodeData_0();
+                }, 1000);
             }
         });
     }
@@ -240,10 +247,10 @@ export class AppComponent implements OnInit, OnDestroy {
             return 'You must enter a value';
         }
         if(this.nwkKeyFormCtrl.hasError('maxlength')) {
-            return 'link key must have 16 chars';
+            return 'nwk key must have 16 chars';
         }
         if(this.nwkKeyFormCtrl.hasError('minlength')) {
-            return 'link key must have 16 chars';
+            return 'nwk key must have 16 chars';
         }
     }
 
@@ -259,10 +266,10 @@ export class AppComponent implements OnInit, OnDestroy {
             return 'You must enter a value';
         }
         if(this.panIdFormCtrl.hasError('min')) {
-            return `rep interval must be ${this.minId} - ${this.maxId}`;
+            return `id must be ${this.minId} - ${this.maxId}`;
         }
         if(this.panIdFormCtrl.hasError('max')) {
-            return `rep interval must be ${this.minId} - ${this.maxId}`;
+            return `id must be ${this.minId} - ${this.maxId}`;
         }
     }
 

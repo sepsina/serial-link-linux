@@ -12,7 +12,7 @@
     </button>
 </div>
 <div id="linkGroup">
-    <mat-form-field id="ssid">
+    <mat-form-field id="ssid" hideRequiredMarker="true">
         <input matInput
             type="text"
             [maxlength]="16"
@@ -23,7 +23,7 @@
         <mat-hint align="end">32 characters</mat-hint>
         <mat-error *ngIf="ssidFormCtrl.invalid">{{ssidErr()}}</mat-error>
     </mat-form-field>
-    <mat-form-field id="psw">
+    <mat-form-field id="psw" hideRequiredMarker="true">
         <input matInput
             type="text"
             [maxlength]="16"

@@ -7,6 +7,11 @@ import { UtilsService } from './utils.service';
 import * as gIF from './gIF';
 import * as gConst from './gConst';
 
+interface sl_msg {
+    type: number;
+    nodeBuf: any;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -16,6 +21,7 @@ export class SerialService {
     validPortFlag = false;
     portOpenFlag = false;
     private portIdx = 0;
+    portPath = '';
 
     private testPortTMO = null;
 
@@ -38,12 +44,20 @@ export class SerialService {
 
     //validPortTMO = null;
 
-    trash: any;
+    //trash: any;
+
+    rxNodeBuf = window.nw.Buffer.alloc(1024);
+    txNodeBuf = window.nw.Buffer.alloc(1024);
+    rwBuf = new gIF.rwBuf_t();
+    //msgNodeBuff: any;
+
+    slMsg = {} as sl_msg;
 
     constructor(private events: EventsService,
                 private globals: GlobalsService,
                 private utils: UtilsService,
                 private ngZone: NgZone) {
+        this.rwBuf.wrBuf = this.txNodeBuf;
         chrome.serial.onReceive.addListener((info)=>{
             if(info.connectionId === this.connID){
                 this.slOnData(info.data);
@@ -58,6 +72,9 @@ export class SerialService {
         setTimeout(()=>{
             this.listComPorts();
         }, 1000);
+        setInterval(()=>{
+            this.readPartNum();
+        }, 5000)
     }
 
     /***********************************************************************************************
@@ -66,13 +83,9 @@ export class SerialService {
      * brief
      *
      */
-    checkCom() {
+    async checkCom() {
         if(this.comFlag == false) {
-            if(this.validPortFlag === true){
-                setTimeout(()=>{
-                    this.closeComPort();
-                }, 0);
-            }
+            await this.closeComPort();
         }
         this.comFlag = false;
         setTimeout(()=>{
@@ -86,22 +99,35 @@ export class SerialService {
      * brief
      *
      */
-    closeComPort() {
+    async closeComPort() {
         if(this.connID > -1){
             this.utils.sendMsg('close port', 'red');
             this.events.publish('closePort', 'close');
-            chrome.serial.disconnect(
-                this.connID,
-                (result)=>{
-                    this.connID = -1;
-                    this.portOpenFlag = false;
-                    this.validPortFlag = false;
-                    setTimeout(() => {
-                        this.findComPort();
-                    }, 200);
-                }
-            );
+
+            const result = await this.closePortAsync(this.connID);
+            if(result){
+                this.connID = -1;
+                this.portOpenFlag = false;
+                this.validPortFlag = false;
+                setTimeout(() => {
+                    this.findComPort();
+                }, 200);
+            }
         }
+    }
+
+    /***********************************************************************************************
+     * fn          closePortAsync
+     *
+     * brief
+     *
+     */
+    closePortAsync(id: number) {
+        return new Promise((resolve)=>{
+            chrome.serial.disconnect(id, (result)=>{
+                resolve(result);
+            });
+        });
     }
 
     /***********************************************************************************************
@@ -112,15 +138,16 @@ export class SerialService {
      */
     listComPorts() {
         chrome.serial.getDevices((ports)=>{
-            this.comPorts = [];
+            /*
             for(let i = 0; i < ports.length; i++){
-                if(ports[i].vendorId === 0x0403){      // FTDI
-                    //if(ports[i].productId === 0x6015){ // FX230
-                    if(ports[i].productId === 0x6001){   // FT232RL
+                if(ports[i].vendorId){
+                    if(ports[i].productId){
                         this.comPorts.push(ports[i]);
                     }
                 }
             }
+            */
+            this.comPorts = ports;
             if(this.comPorts.length) {
                 this.searchPortFlag = true;
                 this.portIdx = 0;
@@ -144,7 +171,7 @@ export class SerialService {
      * brief
      *
      */
-    private findComPort() {
+    async findComPort() {
 
         if(this.searchPortFlag === false){
             setTimeout(()=>{
@@ -152,35 +179,46 @@ export class SerialService {
             }, 1000);
             return;
         }
-        let portPath = this.comPorts[this.portIdx].path;
-        this.utils.sendMsg(`testing: ${portPath}`, 'blue');
+        this.portPath = this.comPorts[this.portIdx].path;
+        this.utils.sendMsg(`testing: ${this.portPath}`, 'blue');
         let connOpts = {
             bitrate: 115200
         };
-        chrome.serial.connect(
-            portPath,
-            connOpts,
-            (connInfo)=>{
-                if(connInfo){
-                    this.connID = connInfo.connectionId;
-                    this.portOpenFlag = true;
-                    this.testPortTMO = setTimeout(()=>{
-                        this.closeComPort();
-                    }, 2000);
-                    this.testPortReq();
-                }
-                else {
-                    this.utils.sendMsg(`err: ${chrome.runtime.lastError.message}`, 'red');
-                    setTimeout(() => {
-                        this.findComPort();
-                    }, 200);
-                }
-            }
-        );
+        const connInfo: any = await this.serialConnectAsync(connOpts);
+        if(connInfo){
+            this.connID = connInfo.connectionId;
+            this.portOpenFlag = true;
+            this.testPortTMO = setTimeout(()=>{
+                this.closeComPort();
+            }, 1000);
+            setTimeout(() => {
+                this.testPortReq();
+            }, 10);
+        }
+        else {
+            this.utils.sendMsg(`err: ${chrome.runtime.lastError.message}`, 'red');
+            setTimeout(() => {
+                this.findComPort();
+            }, 10);
+        }
         this.portIdx++;
         if(this.portIdx >= this.comPorts.length) {
             this.searchPortFlag = false;
         }
+    }
+
+    /***********************************************************************************************
+     * fn          serialConnectAsync
+     *
+     * brief
+     *
+     */
+    serialConnectAsync(connOpt) {
+        return new Promise((resolve)=>{
+            chrome.serial.connect(this.portPath, connOpt, (connInfo)=>{
+                resolve(connInfo);
+            });
+        });
     }
 
     /***********************************************************************************************
@@ -208,13 +246,11 @@ export class SerialService {
                 }
                 case gConst.SL_END_CHAR: {
                     if(this.crc == this.calcCRC) {
-                        let slMsg: gIF.slMsg_t = {
-                            type: this.msgType,
-                            data: Array.from(this.rxMsg).slice(0, this.msgIdx),
-                        };
+                        this.slMsg.type = this.msgType;
+                        this.slMsg.nodeBuf = this.rxNodeBuf.subarray(0, this.msgLen);
                         setTimeout(()=>{
-                            this.processMsg(slMsg);
-                        }, 0);
+                            this.processMsg(this.slMsg);
+                        }, 1);
                     }
                     this.rxState = gIF.eRxState.E_STATE_RX_WAIT_START;
                     break;
@@ -260,7 +296,7 @@ export class SerialService {
                         }
                         case gIF.eRxState.E_STATE_RX_WAIT_DATA: {
                             if(this.msgIdx < this.msgLen) {
-                                this.rxMsg[this.msgIdx++] = rxByte;
+                                this.rxNodeBuf[this.msgIdx++] = rxByte;
                                 this.calcCRC ^= rxByte;
                             }
                             break;
@@ -277,39 +313,36 @@ export class SerialService {
      * brief
      *
      */
-    private processMsg(msg: gIF.slMsg_t) {
+    private processMsg(slMsg: sl_msg) {
 
-        let msgData = new Uint8Array(msg.data);
-        switch(msg.type) {
+        this.rwBuf.rdBuf = slMsg.nodeBuf;
+        this.rwBuf.rdIdx = 0;
+
+        switch(slMsg.type) {
             case gConst.SL_MSG_TESTPORT: {
-                let slMsg = new DataView(msgData.buffer);
                 let idNum = 0;
-                let msgIdx = 0;
-                let msgSeqNum = slMsg.getUint8(msgIdx++);
+                let msgSeqNum = this.rwBuf.read_uint8();
                 if(msgSeqNum == this.seqNum) {
-                    idNum = slMsg.getUint32(msgIdx, gConst.LE);
-                    msgIdx += 4;
+                    idNum = this.rwBuf.read_uint32_LE();
                     if(idNum === 0x67190110) {
                         clearTimeout(this.testPortTMO);
                         this.validPortFlag = true;
                         this.searchPortFlag = false;
                         setTimeout(()=>{
                             this.readPartNum();
-                        }, 1000);
+                        }, 300);
                         this.utils.sendMsg('port valid', 'green');
                     }
                 }
                 break;
             }
             case gConst.SL_MSG_USB_CMD: {
-                let slMsg = new DataView(msgData.buffer);
-                let msgIdx = 0;
-                let msgSeqNum = slMsg.getUint8(msgIdx++);
+                let msgSeqNum = this.rwBuf.read_uint8();
                 if(msgSeqNum == this.seqNum) {
-                    let cmdID = slMsg.getUint8(msgIdx++);
+                    let cmdID = this.rwBuf.read_uint8();
                     switch(cmdID) {
                         case gConst.USB_CMD_KEEP_AWAKE: {
-                            let status = slMsg.getUint8(msgIdx++);
+                            let status = this.rwBuf.read_uint8();
                             if(status == gConst.USB_CMD_STATUS_OK) {
                                 console.log('keep awake ok');
                             }
@@ -319,7 +352,7 @@ export class SerialService {
                             break;
                         }
                         case gConst.USB_CMD_RD_KEYS: {
-                            let status = slMsg.getUint8(msgIdx++);
+                            let status = this.rwBuf.read_uint8();
                             if(status == gConst.USB_CMD_STATUS_OK) {
                                 let rdKeysRsp = {} as gIF.rdKeys_t;
                                 rdKeysRsp.status = gConst.USB_CMD_STATUS_OK;
@@ -327,13 +360,13 @@ export class SerialService {
                                 let chrCode = 0;
                                 let nwkKey = '';
                                 for(i = 0; i < 16; i++) {
-                                    chrCode = slMsg.getUint8(msgIdx++);
+                                    chrCode = this.rwBuf.read_uint8();
                                     if(chrCode != 0) {
                                         nwkKey += String.fromCharCode(chrCode);
                                     }
                                 }
                                 rdKeysRsp.nwkKey = nwkKey;
-                                rdKeysRsp.panId = slMsg.getUint16(msgIdx, gConst.LE);
+                                rdKeysRsp.panId = this.rwBuf.read_uint16_LE();
                                 this.events.publish('rdKeysRsp', rdKeysRsp);
                             }
                             else {
@@ -342,22 +375,19 @@ export class SerialService {
                             break;
                         }
                         case gConst.USB_CMD_RD_NODE_DATA_0: {
-                            let dataLen = slMsg.getUint8(msgIdx++);
-                            let nodeData = new Uint8Array(dataLen);
+                            let dataLen = this.rwBuf.read_uint8();
+                            const rspNodeBuf = window.nw.Buffer.alloc(dataLen);
                             for(let i = 0; i < dataLen; i++) {
-                                nodeData[i] = slMsg.getUint8(msgIdx++);
+                                rspNodeBuf[i] = this.rwBuf.read_uint8();
                             }
-                            this.events.publish('rdNodeDataRsp', nodeData);
+                            this.events.publish('rdNodeDataRsp', rspNodeBuf);
+                            this.utils.sendMsg(`node data rsp`, 'blue');
                             break;
                         }
                         case gConst.USB_CMD_READ_PART_NUM: {
-                            let partNum = slMsg.getUint32(msgIdx, this.globals.LE);
-                            msgIdx += 4;
+                            let partNum = this.rwBuf.read_uint32_LE();
                             this.events.publish('readPartNumRsp', partNum);
                             this.utils.sendMsg(`comm ok`, 'blue', 7);
-                            setTimeout(()=>{
-                                this.readPartNum();
-                            }, 5000);
                             this.comFlag = true;
                             break;
                         }
@@ -369,8 +399,15 @@ export class SerialService {
                 break;
             }
             case gConst.SL_MSG_LOG: {
-                let log_msg = String.fromCharCode.apply(null, msgData);
-                this.utils.sendMsg(log_msg);
+                let log_msg = '';
+                let chrCode: number
+                for(let i = 0; i < slMsg.nodeBuf.length; i++) {
+                    chrCode = this.rwBuf.read_uint8();
+                    if(chrCode != 0) {
+                        log_msg += String.fromCharCode(chrCode);
+                    }
+                }
+                this.utils.sendMsg(log_msg, 'orange');
                 break;
             }
         }
@@ -382,34 +419,28 @@ export class SerialService {
      * brief
      *
      */
-    private testPortReq() {
-
-        let pktBuf = new ArrayBuffer(64);
-        let pktData = new Uint8Array(pktBuf);
-        let pktView = new DataView(pktBuf);
-        let slMsgBuf = new Uint8Array(128);
-        let i: number;
-        let msgIdx: number;
+    async testPortReq() {
 
         this.seqNum = ++this.seqNum % 256;
-        msgIdx = 0;
-        pktView.setUint16(msgIdx, gConst.SL_MSG_TESTPORT, gConst.LE);
-        msgIdx += 2;
-        msgIdx += 2 + 1; // len + crc
-        // cmd data
-        pktView.setUint8(msgIdx++, this.seqNum);
-        pktView.setUint32(msgIdx, 0x67190110, gConst.LE);
-        msgIdx += 4;
-        let msgLen = msgIdx;
-        let dataLen = msgLen - gConst.HEAD_LEN;
-        pktView.setUint16(gConst.LEN_IDX, dataLen, gConst.LE);
-        let crc = 0;
-        for(i = 0; i < msgLen; i++) {
-            crc ^= pktData[i];
-        }
-        pktView.setUint8(gConst.CRC_IDX, crc);
+        this.rwBuf.wrIdx = 0;
 
-        this.serialSend(pktData, msgLen);
+        this.rwBuf.write_uint16_LE(gConst.SL_MSG_TESTPORT);
+        this.rwBuf.write_uint16_LE(0); // len
+        this.rwBuf.write_uint8(0);     // CRC
+        // cmd data
+        this.rwBuf.write_uint8(this.seqNum);
+        this.rwBuf.write_uint32_LE(0x67190110);
+
+        let msgLen = this.rwBuf.wrIdx;
+        let dataLen = msgLen - gConst.HEAD_LEN;
+        this.rwBuf.modify_uint16_LE(dataLen, gConst.LEN_IDX);
+        let crc = 0;
+        for(let i = 0; i < msgLen; i++) {
+            crc ^= this.txNodeBuf[i];
+        }
+        this.rwBuf.modify_uint8(crc, gConst.CRC_IDX);
+
+        await this.serialSend(msgLen);
     }
 
     /***********************************************************************************************
@@ -485,8 +516,8 @@ export class SerialService {
      * brief
      *
      */
-    public readPartNum() {
-        this.usbCmd(gConst.USB_CMD_READ_PART_NUM, null);
+    async readPartNum() {
+        await this.usbCmd(gConst.USB_CMD_READ_PART_NUM, null);
     }
 
     /***********************************************************************************************
@@ -495,45 +526,39 @@ export class SerialService {
      * brief
      *
      */
-    public usbCmd(cmdID: number, param: any) {
+    async usbCmd(cmdID: number, param: any) {
 
         if(this.validPortFlag === false) {
             return;
         }
-        let pktBuf = new ArrayBuffer(1024);
-        let pktData = new Uint8Array(pktBuf);
-        let pktView = new DataView(pktBuf);
-        let slMsgBuf = new Uint8Array(2048);
-        let i: number;
-        let msgIdx: number;
 
         this.seqNum = ++this.seqNum % 256;
-        msgIdx = 0;
-        pktView.setUint16(msgIdx, gConst.SL_MSG_USB_CMD, gConst.LE);
-        msgIdx += 2;
-        msgIdx += 2 + 1; // len + crc
+        this.rwBuf.wrIdx = 0;
+
+        this.rwBuf.write_uint16_LE(gConst.SL_MSG_USB_CMD);
+        this.rwBuf.write_uint16_LE(0); // len
+        this.rwBuf.write_uint8(0);     // CRC
         // cmd data
-        pktView.setUint8(msgIdx++, this.seqNum);
-        pktView.setUint8(msgIdx++, cmdID);
+        this.rwBuf.write_uint8(this.seqNum);
+        this.rwBuf.write_uint8(cmdID);
         switch(cmdID) {
             case gConst.USB_CMD_WR_KEYS: {
-                for(i = 0; i < 16; i++) {
-                    let chrCode = param.nwkKey.charCodeAt(i);
+                for(let i = 0; i < 16; i++) {
+                    const chrCode = param.nwkKey.charCodeAt(i);
                     if(chrCode) {
-                        pktView.setUint8(msgIdx++, chrCode);
+                        this.rwBuf.write_uint8(chrCode);
                     }
                     else {
-                        pktView.setUint8(msgIdx++, 0);
+                        this.rwBuf.write_uint8(0);
                     }
                 }
-                pktView.setUint16(msgIdx, param.panId, gConst.LE);
-                msgIdx += 2;
+                this.rwBuf.write_uint16_LE(param.panId);
                 break;
             }
             case gConst.USB_CMD_WR_NODE_DATA_0: {
                 let data = new Uint8Array(param.buf);
-                for(i = 0; i < param.buf.byteLength; i++) {
-                    pktView.setUint8(msgIdx++, data[i]);
+                for(let i = 0; i < param.buf.byteLength; i++) {
+                    this.rwBuf.write_uint8(data[i]);
                 }
                 break;
             }
@@ -541,16 +566,16 @@ export class SerialService {
                 // ---
             }
         }
-        let msgLen = msgIdx;
-        let dataLen = msgLen - gConst.HEAD_LEN;
-        pktView.setUint16(gConst.LEN_IDX, dataLen, gConst.LE);
+        const msgLen = this.rwBuf.wrIdx;
+        const dataLen = msgLen - gConst.HEAD_LEN;
+        this.rwBuf.modify_uint16_LE(dataLen, gConst.LEN_IDX);
         let crc = 0;
-        for(i = 0; i < msgLen; i++) {
-            crc ^= pktData[i];
+        for(let i = 0; i < msgLen; i++) {
+            crc ^= this.txNodeBuf[i];
         }
-        pktView.setUint8(gConst.CRC_IDX, crc);
+        this.rwBuf.modify_uint8(crc, gConst.CRC_IDX);
 
-        this.serialSend(pktData, msgLen);
+        await this.serialSend(msgLen);
     }
 
     /***********************************************************************************************
@@ -559,47 +584,53 @@ export class SerialService {
      * brief
      *
      */
-    serialSend(pktData: Uint8Array, msgLen: number) {
+    async serialSend(msgLen: number) {
 
         let slMsgBuf = new Uint8Array(128);
         let msgIdx = 0;
 
         slMsgBuf[msgIdx++] = gConst.SL_START_CHAR;
         for(let i = 0; i < msgLen; i++) {
-            if(pktData[i] < 0x10) {
-                pktData[i] ^= 0x10;
+            if(this.txNodeBuf[i] < 0x10) {
+                this.txNodeBuf[i] ^= 0x10;
                 slMsgBuf[msgIdx++] = gConst.SL_ESC_CHAR;
             }
-            slMsgBuf[msgIdx++] = pktData[i];
+            slMsgBuf[msgIdx++] = this.txNodeBuf[i];
         }
         slMsgBuf[msgIdx++] = gConst.SL_END_CHAR;
 
         let slMsgLen = msgIdx;
         let slMsg = slMsgBuf.slice(0, slMsgLen);
+
+        const sendInfo: any = await this.serialSendAsync(slMsg);
+        if(sendInfo.error){
+            this.utils.sendMsg(`send err: ${sendInfo.error}`, 'red');
+        }
+        /*
         chrome.serial.send(
             this.connID,
             slMsg.buffer,
             (sendInfo: any)=>{
                 if(sendInfo.error){
-                    switch(sendInfo.error){
-                        case 'disconnected':
-                        case 'system_error': {
-                            setTimeout(() => {
-                                this.closeComPort();
-                            }, 100);
-                            break;
-                        }
-                        case 'pending': {
-                            break;
-                        }
-                        case 'timeout': {
-                            break;
-                        }
-                    }
                     this.utils.sendMsg(`send err: ${sendInfo.error}`, 'red');
                 }
             }
         );
+        */
+    }
+
+    /***********************************************************************************************
+     * fn          serialSendAsync
+     *
+     * brief
+     *
+     */
+    serialSendAsync(slMsg: any) {
+        return new Promise((resolve)=>{
+            chrome.serial.send(this.connID, slMsg.buffer, (sendInfo: any)=>{
+                resolve(sendInfo);
+            });
+        });
     }
 
     /***********************************************************************************************
@@ -608,16 +639,24 @@ export class SerialService {
      * brief
      *
      */
-    rcvErrCB(info: any) {
+    async rcvErrCB(info: any) {
         if(info.connectionId === this.connID){
-            this.utils.sendMsg(`port err: ${info.error}`, 'red');
             switch(info.error){
-                case 'disconnected':
-                case 'device_lost':
-                case 'system_error': {
-                    setTimeout(() => {
+                case 'disconnected': {
+                    this.utils.sendMsg(`${this.portPath} disconnected`);
+                    setTimeout(()=>{
                         this.closeComPort();
-                    }, 100);
+                    }, 10);
+                    break;
+                }
+                case 'device_lost': {
+                    this.utils.sendMsg(`${this.portPath} lost`, 'red');
+                    setTimeout(()=>{
+                        this.closeComPort();
+                    }, 10);
+                    break;
+                }
+                case 'system_error': {
                     break;
                 }
                 case 'timeout':
@@ -632,4 +671,5 @@ export class SerialService {
             }
         }
     }
+
 }

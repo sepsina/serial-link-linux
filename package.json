@@ -5,8 +5,8 @@
   "node-remote": "http://localhost:8964",
   "chromium-args": "--disable-raf-throttling",
   "window": {
-    "width": 400,
-    "height": 400,
+    "width": 500,
+    "height": 900,
     "min_width": 300,
     "min_height": 300,
     "icon": "assets/icon.png"
@@ -31,6 +31,7 @@
     "@angular/platform-browser-dynamic": "^14.2.0",
     "@angular/router": "^14.2.0",
     "@types/chrome": "^0.0.212",
+    "@types/node": "^18.16.0",
     "chrome-apps-serialport": "^1.0.9",
     "material-icons": "^1.12.1",
     "primeicons": "^6.0.1",

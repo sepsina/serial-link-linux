@@ -4,6 +4,7 @@ import { EventsService } from '../events.service';
 import { GlobalsService } from '../globals.service';
 //import {sprintf} from 'sprintf-js';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import * as gIF from '../gIF';
 
 @Component({
     selector: 'app-bme280-007',
@@ -22,6 +23,8 @@ export class BME280_007_Component implements OnInit {
     batVoltFlag = false;
     reportInterval = this.minInt;
 
+    rwBuf = new gIF.rwBuf_t();
+
     constructor(private serial: SerialService,
                 private events: EventsService,
                 private globals: GlobalsService,
@@ -31,20 +34,17 @@ export class BME280_007_Component implements OnInit {
 
     ngOnInit(): void {
 
-        this.events.subscribe('rdNodeDataRsp', (msg: Uint8Array) => {
-            let buf = msg.buffer;
-            let data = new DataView(buf);
-            let idx = 0;
-
-            let partNum = data.getUint32(idx, this.globals.LE);
-            idx += 4;
+        this.events.subscribe('rdNodeDataRsp', (msg) => {
+            this.rwBuf.rdBuf = msg;
+            this.rwBuf.rdIdx = 0;
+            const partNum = this.rwBuf.read_uint32_LE();
             if(partNum == this.globals.BME280_007) {
                 this.ngZone.run(()=>{
-                    this.rhFlag = !!data.getUint8(idx++);
-                    this.tempFlag = !!data.getUint8(idx++);
-                    this.pressFlag = !!data.getUint8(idx++);
-                    this.batVoltFlag = !!data.getUint8(idx++);
-                    this.reportInterval = data.getUint8(idx++);
+                    this.rhFlag = !!this.rwBuf.read_uint8();
+                    this.tempFlag = !!this.rwBuf.read_uint8();
+                    this.pressFlag = !!this.rwBuf.read_uint8();
+                    this.batVoltFlag = !!this.rwBuf.read_uint8();
+                    this.reportInterval = this.rwBuf.read_uint8();
                     this.formGroup.patchValue({
                         repInt: this.reportInterval,
                     });

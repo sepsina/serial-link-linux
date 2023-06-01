@@ -4,6 +4,7 @@ import { EventsService } from '../events.service';
 import { GlobalsService } from '../globals.service';
 import { Validators, FormGroup, FormControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import * as gIF from '../gIF';
 
 @Component({
     selector: 'app-esp-link',
@@ -19,6 +20,8 @@ export class Esp_Link_Component implements OnInit, OnDestroy {
     pswFormCtrl: FormControl;
     //repIntFormCtrl: FormControl;
     subscription = new Subscription;
+
+    rwBuf = new gIF.rwBuf_t();
 
     constructor(private serial: SerialService,
                 private events: EventsService,
@@ -46,18 +49,15 @@ export class Esp_Link_Component implements OnInit, OnDestroy {
      */
     ngOnInit(): void {
 
-        this.events.subscribe('rdNodeDataRsp', (msg: Uint8Array)=>{
-            let buf = msg.buffer;
-            let data = new DataView(buf);
-            let idx = 0;
-
-            let partNum = data.getUint32(idx, this.globals.LE);
-            idx += 4;
+        this.events.subscribe('rdNodeDataRsp', (msg)=>{
+            this.rwBuf.rdBuf = msg;
+            this.rwBuf.rdIdx = 0;
+            const partNum = this.rwBuf.read_uint32_LE();
             if(partNum == this.globals.ESP_LINK) {
                 let chrCode = 0;
                 let ssid = '';
                 for(let i = 0; i < 32; i++) {
-                    chrCode = data.getUint8(idx++);
+                    chrCode = this.rwBuf.read_uint8();
                     if(chrCode != 0) {
                         ssid += String.fromCharCode(chrCode);
                     }
@@ -65,13 +65,12 @@ export class Esp_Link_Component implements OnInit, OnDestroy {
                 this.ssidFormCtrl.setValue(ssid);
                 let psw = '';
                 for(let i = 0; i < 16; i++) {
-                    chrCode = data.getUint8(idx++);
+                    chrCode = this.rwBuf.read_uint8();
                     if(chrCode != 0) {
                         psw += String.fromCharCode(chrCode);
                     }
                 }
                 this.pswFormCtrl.setValue(psw);
-                //this.repIntFormCtrl.setValue(data.getUint8(idx++));
             }
         });
         this.events.subscribe('rdNodeData_0', ()=>{
@@ -85,8 +84,9 @@ export class Esp_Link_Component implements OnInit, OnDestroy {
                 Validators.maxLength(32),
             ]
         )
+        this.ssidFormCtrl.markAsTouched();
         const ssidSubscription = this.ssidFormCtrl.valueChanges.subscribe((ssid)=>{
-            this.ssidFormCtrl.markAsTouched();
+            this.appRef.tick();
         });
         this.subscription.add(ssidSubscription);
 
@@ -97,25 +97,11 @@ export class Esp_Link_Component implements OnInit, OnDestroy {
                 Validators.maxLength(16),
             ]
         )
+        this.pswFormCtrl.markAsTouched();
         const pswSubscription = this.pswFormCtrl.valueChanges.subscribe((psw)=>{
-            this.pswFormCtrl.markAsTouched();
-        });
-        this.subscription.add(pswSubscription);
-        /*
-        this.repIntFormCtrl = new FormControl(
-            this.minInt,
-            [
-                Validators.required,
-                Validators.min(this.minInt),
-                Validators.max(this.maxInt),
-            ]
-        );
-        const repIntSubscription = this.repIntFormCtrl.valueChanges.subscribe((newInt)=>{
-            this.repIntFormCtrl.markAsTouched();
             this.appRef.tick();
         });
-        this.subscription.add(repIntSubscription);
-        */
+        this.subscription.add(pswSubscription);
     }
 
     /***********************************************************************************************

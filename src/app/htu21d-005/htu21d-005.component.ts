@@ -4,6 +4,7 @@ import { EventsService } from '../events.service';
 import { GlobalsService } from '../globals.service';
 import { Validators, FormGroup, FormControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import * as gIF from '../gIF';
 
 @Component({
     selector: 'app-htu21d-005',
@@ -22,6 +23,8 @@ export class HTU21D_005_Component implements OnInit, OnDestroy {
     repIntFormCtrl: FormControl;
     subscription = new Subscription();
 
+    rwBuf = new gIF.rwBuf_t();
+
     constructor(private serial: SerialService,
                 private events: EventsService,
                 private globals: GlobalsService,
@@ -35,20 +38,16 @@ export class HTU21D_005_Component implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-
-        this.events.subscribe('rdNodeDataRsp', (msg: Uint8Array)=>{
-            let buf = msg.buffer;
-            let data = new DataView(buf);
-            let idx = 0;
-
-            let partNum = data.getUint32(idx, this.globals.LE);
-            idx += 4;
+        this.events.subscribe('rdNodeDataRsp', (msg)=>{
+            this.rwBuf.rdBuf = msg;
+            this.rwBuf.rdIdx = 0;
+            const partNum = this.rwBuf.read_uint32_LE();
             if(partNum == this.globals.HTU21D_005) {
                 this.ngZone.run(()=>{
-                    this.rhFlag = !!data.getUint8(idx++);
-                    this.tempFlag = !!data.getUint8(idx++);
-                    this.batVoltFlag = !!data.getUint8(idx++);
-                    this.repIntFormCtrl.setValue(data.getUint8(idx++));
+                    this.rhFlag = !!this.rwBuf.read_uint8();
+                    this.tempFlag = !!this.rwBuf.read_uint8();
+                    this.batVoltFlag = !!this.rwBuf.read_uint8();
+                    this.repIntFormCtrl.setValue(this.rwBuf.read_uint8());
                 });
             }
         });
@@ -63,8 +62,8 @@ export class HTU21D_005_Component implements OnInit, OnDestroy {
                 Validators.max(this.maxInt)
             ]
         );
+        this.repIntFormCtrl.markAsTouched();
         const repIntSubscription = this.repIntFormCtrl.valueChanges.subscribe((newInt)=>{
-            this.repIntFormCtrl.markAsTouched();
             this.appRef.tick();
         });
         this.subscription.add(repIntSubscription);

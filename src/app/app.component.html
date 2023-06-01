@@ -11,7 +11,7 @@
         </button>
     </div> -->
 
-    <div *ngIf="serial.validPortFlag" id="secData" class="app-card">
+    <div *ngIf="serial.validPortFlag && !espLinkFlag" id="secData" class="app-card">
         <div class="right-center app-card-toolbar">
             <div class="left-center app-card-title">security</div>
             <button mat-button (click)="readKeys()" [disabled]="espLinkFlag">
@@ -24,25 +24,25 @@
             </button>
         </div>
         <div id="secGroup">
-            <mat-form-field id="nwkKey">
+            <mat-form-field id="nwkKey" hideRequiredMarker="true">
                 <input matInput
                        type="text"
                        [maxlength]="16"
-                       placeholder="global link-key"
+                       placeholder="nwk-key"
                        [formControl]='nwkKeyFormCtrl'
-                       style="padding-left: 5px"
-                       autocomplete="off">
+                       style="padding-left: 5px;"
+                       autocomplete="off"/>
                 <mat-hint align="end">16 characters</mat-hint>
                 <mat-error *ngIf="nwkKeyFormCtrl.invalid">{{nwkKeyErr()}}</mat-error>
             </mat-form-field>
-            <mat-form-field id="panId">
+            <mat-form-field id="panId" hideRequiredMarker="true">
                 <input matInput
                        type="number"
                        [max]="maxId"
                        [min]="minId"
                        placeholder="PAN ID"
                        [formControl]="panIdFormCtrl"
-                       style="padding-left: 5px" />
+                       style="padding-left: 5px"/>
                 <mat-hint align="end">{{minId}} - {{maxId}}</mat-hint>
                 <mat-error *ngIf="panIdFormCtrl.invalid">{{panIdErr()}}</mat-error>
             </mat-form-field>
