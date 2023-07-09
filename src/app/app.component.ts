@@ -28,9 +28,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
     minId = 1;
     maxId = 0xFFFE;
+    minCh = 11;
+    maxCh = 26;
 
     nwkKeyFormCtrl: FormControl;
     panIdFormCtrl: FormControl;
+    nwkChFormCtrl: FormControl;
     subscription = new Subscription();
 
     logs: gIF.msgLogs_t[] = [];
@@ -92,6 +95,21 @@ export class AppComponent implements OnInit, OnDestroy {
             ]
         );
         this.panIdFormCtrl.markAsTouched();
+        /*
+        const panIdSubscription = this.panIdFormCtrl.valueChanges.subscribe((newId)=>{
+            // ---
+        });
+        this.subscription.add(panIdSubscription);
+        */
+        this.nwkChFormCtrl = new FormControl(
+            this.minCh,
+            [
+                Validators.required,
+                Validators.min(this.minCh),
+                Validators.max(this.maxCh),
+            ]
+        );
+        this.nwkChFormCtrl.markAsTouched();
         /*
         const panIdSubscription = this.panIdFormCtrl.valueChanges.subscribe((newId)=>{
             // ---
@@ -232,6 +250,7 @@ export class AppComponent implements OnInit, OnDestroy {
             this.ngZone.run(()=>{
                 this.nwkKeyFormCtrl.setValue(msg.nwkKey);
                 this.panIdFormCtrl.setValue(msg.panId);
+                this.nwkChFormCtrl.setValue(msg.nwkCh);
             });
         }
     }
@@ -274,6 +293,25 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     /***********************************************************************************************
+     * fn          panIdErr
+     *
+     * brief
+     *
+     */
+    nwkChErr() {
+
+        if(this.nwkChFormCtrl.hasError('required')) {
+            return 'You must enter a value';
+        }
+        if(this.nwkChFormCtrl.hasError('min')) {
+            return `ch must be ${this.minCh} - ${this.maxCh}`;
+        }
+        if(this.nwkChFormCtrl.hasError('max')) {
+            return `ch must be ${this.minCh} - ${this.maxCh}`;
+        }
+    }
+
+    /***********************************************************************************************
      * fn          openSerial
      *
      * brief
@@ -302,7 +340,8 @@ export class AppComponent implements OnInit, OnDestroy {
      */
     wrKeys() {
         this.serial.wrKeys(this.nwkKeyFormCtrl.value,
-                           this.panIdFormCtrl.value);
+                           this.panIdFormCtrl.value,
+                           this.nwkChFormCtrl.value);
     }
 
     /***********************************************************************************************
@@ -326,6 +365,9 @@ export class AppComponent implements OnInit, OnDestroy {
             return false;
         }
         if(this.panIdFormCtrl.invalid){
+            return false;
+        }
+        if(this.nwkChFormCtrl.invalid){
             return false;
         }
         return true;

@@ -46,6 +46,17 @@
                 <mat-hint align="end">{{minId}} - {{maxId}}</mat-hint>
                 <mat-error *ngIf="panIdFormCtrl.invalid">{{panIdErr()}}</mat-error>
             </mat-form-field>
+            <mat-form-field id="nwkCh" hideRequiredMarker="true">
+                <input matInput
+                       type="number"
+                       [max]="maxCh"
+                       [min]="minCh"
+                       placeholder="Channel"
+                       [formControl]="nwkChFormCtrl"
+                       style="padding-left: 5px"/>
+                <mat-hint align="end">{{minCh}} - {{maxCh}}</mat-hint>
+                <mat-error *ngIf="nwkChFormCtrl.invalid">{{nwkChErr()}}</mat-error>
+            </mat-form-field>
         </div>
     </div>
 

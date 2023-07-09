@@ -13,6 +13,7 @@ export interface rdKeys_t {
     status: number;
     nwkKey: string;
     panId: number;
+    nwkCh: number;
 }
 
 export interface slMsg_t {

@@ -367,6 +367,7 @@ export class SerialService {
                                 }
                                 rdKeysRsp.nwkKey = nwkKey;
                                 rdKeysRsp.panId = this.rwBuf.read_uint16_LE();
+                                rdKeysRsp.nwkCh = this.rwBuf.read_uint8();
                                 this.events.publish('rdKeysRsp', rdKeysRsp);
                             }
                             else {
@@ -479,10 +480,11 @@ export class SerialService {
      * brief
      *
      */
-    public wrKeys(nwkKey: string, panId: number) {
+    public wrKeys(nwkKey: string, panId: number, nwkCh: number) {
         let param = {
             nwkKey: nwkKey,
-            panId: panId
+            panId: panId,
+            nwkCh: nwkCh
         };
         this.usbCmd(gConst.USB_CMD_WR_KEYS, param);
     }
@@ -553,6 +555,7 @@ export class SerialService {
                     }
                 }
                 this.rwBuf.write_uint16_LE(param.panId);
+                this.rwBuf.write_uint8(param.nwkCh);
                 break;
             }
             case gConst.USB_CMD_WR_NODE_DATA_0: {
