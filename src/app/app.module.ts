@@ -13,6 +13,7 @@ import { BME280_007_Component } from './bme280-007/bme280-007.component';
 import { SSR_009_Component } from './ssr-009/ssr-009.component';
 import { Actuator_010_Component } from './actuator-010/actuator-010.component';
 import { DBL_SW_008_Component } from './dbl-sw-008/dbl-sw-008.component';
+import { TGL_SW_011_Component } from './tgl-sw-011/tgl-sw-011';
 import { ZB_Bridge_Component } from './zb-bridge/zb-bridge.component';
 import { Esp_Link_Component } from './esp-link/esp-link.component';
 
@@ -27,6 +28,7 @@ import { SliderModule } from 'primeng/slider'
         SSR_009_Component,
         Actuator_010_Component,
         DBL_SW_008_Component,
+        TGL_SW_011_Component,
         ZB_Bridge_Component,
         Esp_Link_Component
     ],

@@ -134,6 +134,7 @@ export class GlobalsService {
     SSR_009 = 900;
     DBL_SW_008 = 800;
     ACTUATOR_010 = 1000;
+    TGL_SW_011 = 1100;
 
     constructor() {
     }

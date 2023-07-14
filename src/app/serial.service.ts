@@ -248,9 +248,7 @@ export class SerialService {
                     if(this.crc == this.calcCRC) {
                         this.slMsg.type = this.msgType;
                         this.slMsg.nodeBuf = this.rxNodeBuf.subarray(0, this.msgLen);
-                        setTimeout(()=>{
-                            this.processMsg(this.slMsg);
-                        }, 1);
+                        this.processMsg(this.slMsg);
                     }
                     this.rxState = gIF.eRxState.E_STATE_RX_WAIT_START;
                     break;
@@ -314,6 +312,8 @@ export class SerialService {
      *
      */
     private processMsg(slMsg: sl_msg) {
+
+        console.log(slMsg);
 
         this.rwBuf.rdBuf = slMsg.nodeBuf;
         this.rwBuf.rdIdx = 0;

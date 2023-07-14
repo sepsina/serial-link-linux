@@ -10,6 +10,7 @@ import { SH_006_Component } from './sh-006/sh-006.component';
 import { SSR_009_Component } from './ssr-009/ssr-009.component';
 import { Actuator_010_Component } from './actuator-010/actuator-010.component';
 import { DBL_SW_008_Component } from './dbl-sw-008/dbl-sw-008.component';
+import { TGL_SW_011_Component } from './tgl-sw-011/tgl-sw-011';
 import { ZB_Bridge_Component } from './zb-bridge/zb-bridge.component';
 import { Esp_Link_Component } from './esp-link/esp-link.component';
 import { Subscription } from 'rxjs';
@@ -180,6 +181,10 @@ export class AppComponent implements OnInit, OnDestroy {
                     }
                     case this.globals.DBL_SW_008: {
                         this.viewRef.createComponent(DBL_SW_008_Component);
+                        break;
+                    }
+                    case this.globals.TGL_SW_011: {
+                        this.viewRef.createComponent(TGL_SW_011_Component);
                         break;
                     }
                     case this.globals.ACTUATOR_010: {
