@@ -13,8 +13,8 @@ import * as gIF from '../gIF';
 })
 export class HTU21D_005_Component implements OnInit, OnDestroy {
 
-    minInt = 5;
-    maxInt = 30;
+    minInt = 1;
+    maxInt = 10;
 
     rhFlag = false;
     tempFlag = false;

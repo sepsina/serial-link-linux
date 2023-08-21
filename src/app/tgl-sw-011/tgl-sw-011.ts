@@ -13,8 +13,8 @@ import * as gIF from '../gIF';
 })
 export class TGL_SW_011_Component implements OnInit, OnDestroy {
 
-    minInt = 10;
-    maxInt = 60;
+    minInt = 1;
+    maxInt = 10;
 
     batVoltFlag = false;
     repIntFormCtrl: FormControl;
