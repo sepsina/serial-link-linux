@@ -5,14 +5,19 @@ import { SerialService } from './serial.service';
 import { Validators, FormGroup, FormControl } from '@angular/forms';
 
 import { HTU21D_005_Component } from './htu21d-005/htu21d-005.component';
+import { SHT40_018_Component } from './sht40-018/sht40-018.component';
 import { SH_006_Component } from './sh-006/sh-006.component';
 //import { BME280_007_Component } from './bme280-007/bme280-007.component';
 import { SSR_009_Component } from './ssr-009/ssr-009.component';
 import { Actuator_010_Component } from './actuator-010/actuator-010.component';
 import { DBL_SW_008_Component } from './dbl-sw-008/dbl-sw-008.component';
 import { TGL_SW_011_Component } from './tgl-sw-011/tgl-sw-011';
+import { RKR_SW_012_Component } from './rkr-sw-012/rkr-sw-012';
 import { ZB_Bridge_Component } from './zb-bridge/zb-bridge.component';
 import { Esp_Link_Component } from './esp-link/esp-link.component';
+import { AQ_015_Component } from './aq-015/aq-015.component';
+import { SI7021_027_Component } from './si7021-027/SI7021-027.component';
+import { PB_SW_023_Component } from './pb-sw-023/pb-sw-023';
 import { Subscription } from 'rxjs';
 
 import * as gIF from './gIF';
@@ -175,6 +180,14 @@ export class AppComponent implements OnInit, OnDestroy {
                         this.viewRef.createComponent(HTU21D_005_Component);
                         break;
                     }
+                    case this.globals.SHT40_018: {
+                        this.viewRef.createComponent(SHT40_018_Component);
+                        break;
+                    }
+                    case this.globals.SI7021_027: {
+                        this.viewRef.createComponent(SI7021_027_Component);
+                        break;
+                    }
                     case this.globals.SH_006: {
                         this.viewRef.createComponent(SH_006_Component);
                         break;
@@ -187,12 +200,24 @@ export class AppComponent implements OnInit, OnDestroy {
                         this.viewRef.createComponent(TGL_SW_011_Component);
                         break;
                     }
+                    case this.globals.RKR_SW_012: {
+                        this.viewRef.createComponent(RKR_SW_012_Component);
+                        break;
+                    }
+                    case this.globals.PB_SW_023: {
+                        this.viewRef.createComponent(PB_SW_023_Component);
+                        break;
+                    }
                     case this.globals.ACTUATOR_010: {
                         this.viewRef.createComponent(Actuator_010_Component);
                         break;
                     }
                     case this.globals.SSR_009: {
                         this.viewRef.createComponent(SSR_009_Component);
+                        break;
+                    }
+                    case this.globals.AQ_015: {
+                        this.viewRef.createComponent(AQ_015_Component);
                         break;
                     }
                     default:

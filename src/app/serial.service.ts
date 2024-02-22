@@ -190,10 +190,18 @@ export class SerialService {
             this.portOpenFlag = true;
             this.testPortTMO = setTimeout(()=>{
                 this.closeComPort();
-            }, 1000);
+            }, 1500);
+            // dtr and rts are active low signals => true->low level
+            chrome.serial.setControlSignals(this.connID, { dtr: false, rts: false }, (result: boolean)=>{
+                setTimeout(() => {
+                    this.testPortReq();
+                }, 500);
+            });
+            /*
             setTimeout(() => {
                 this.testPortReq();
             }, 10);
+            */
         }
         else {
             this.utils.sendMsg(`err: ${chrome.runtime.lastError.message}`, 'red');

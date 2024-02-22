@@ -135,6 +135,11 @@ export class GlobalsService {
     DBL_SW_008 = 800;
     ACTUATOR_010 = 1000;
     TGL_SW_011 = 1100;
+    RKR_SW_012 = 1200;
+    AQ_015 = 1500;
+    SHT40_018 = 1800;
+    PB_SW_023 = 2300;
+    SI7021_027 = 2700;
 
     constructor() {
     }
